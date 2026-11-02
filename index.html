@@ -77,7 +77,13 @@
         (decodedText) => {
           lastCode = decodedText;
           codeOut.textContent = decodedText;
-          setStatus('Código lido com sucesso. Você pode copiá-lo.');
+          setStatus('Código lido com sucesso: ' + decodedText);
+          if (window.opener && !window.opener.closed) {
+            window.opener.postMessage({tipo:'MERCADO_FACIL_CODIGO', codigo:decodedText}, '*');
+            setStatus('Código enviado ao Mercado Fácil: ' + decodedText + '. Esta guia pode ser fechada.');
+          } else {
+            setStatus('Código lido com sucesso. Abra o leitor a partir do Mercado Fácil para enviar o código automaticamente.');
+          }
           stopScanner();
         },
         () => {}
