@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Leitor de código de barras | Mercado Fácil</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    :root { font-family: Arial, sans-serif; color: #183028; background: #f3f7f4; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 20px; }
+    main { max-width: 560px; margin: 0 auto; background: white; padding: 22px; border-radius: 16px; box-shadow: 0 4px 18px #00000012; }
+    h1 { font-size: 1.45rem; margin: 0 0 8px; }
+    p { line-height: 1.45; }
+    button { border: 0; border-radius: 10px; padding: 13px 16px; margin: 5px 4px 5px 0; font-weight: 700; font-size: 1rem; cursor: pointer; }
+    .primary { background: #087b42; color: white; }
+    .secondary { background: #e8efe9; color: #183028; }
+    #reader { width: 100%; margin-top: 14px; }
+    #status { padding: 12px; border-radius: 8px; background: #eef4ef; overflow-wrap: anywhere; }
+    #code { font-size: 1.25rem; font-weight: bold; overflow-wrap: anywhere; }
+    .small { color: #52645a; font-size: .9rem; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Leitor de código de barras</h1>
+  <p>Mercado Fácil — teste independente da câmera.</p>
+  <button id="start" class="primary">Abrir câmera</button>
+  <button id="stop" class="secondary">Fechar câmera</button>
+  <div id="reader"></div>
+  <h2>Código lido</h2>
+  <p id="code">Nenhum código lido ainda.</p>
+  <button id="copy" class="secondary">Copiar código</button>
+  <p id="status" role="status">Toque em “Abrir câmera” e autorize o acesso quando o navegador perguntar.</p>
+  <p class="small">A câmera só será usada após você tocar no botão. Esta página de teste não altera produtos, vendas ou estoque.</p>
+</main>
+<script>
+(() => {
+  const status = document.getElementById('status');
+  const codeOut = document.getElementById('code');
+  let scanner = null;
+  let lastCode = '';
+  function setStatus(message) { status.textContent = message; }
+  async function stopScanner() {
+    if (scanner) {
+      try { if (scanner.isScanning) await scanner.stop(); } catch (_) {}
+      try { await scanner.clear(); } catch (_) {}
+      scanner = null;
+    }
+  }
+  document.getElementById('start').addEventListener('click', async () => {
+    setStatus('Solicitando acesso à câmera…');
+    if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setStatus('Este navegador não disponibilizou a câmera. Abra o endereço HTTPS do GitHub Pages no Chrome.');
+      return;
+    }
+    if (!window.Html5Qrcode) {
+      setStatus('A biblioteca do leitor não carregou. Verifique a internet e recarregue a página.');
+      return;
+    }
+    await stopScanner();
+    scanner = new Html5Qrcode('reader');
+    try {
+      await scanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 280, height: 120 }, aspectRatio: 1.4,
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.ITF,
+            Html5QrcodeSupportedFormats.QR_CODE
+          ] },
+        (decodedText) => {
+          lastCode = decodedText;
+          codeOut.textContent = decodedText;
+          setStatus('Código lido com sucesso. Você pode copiá-lo.');
+          stopScanner();
+        },
+        () => {}
+      );
+      setStatus('Câmera aberta. Aponte para o código de barras e mantenha-o dentro da moldura.');
+    } catch (err) {
+      const name = err && err.name ? err.name + ': ' : '';
+      const message = err && err.message ? err.message : String(err);
+      setStatus('Não foi possível abrir a câmera. ' + name + message + ' Verifique a permissão da câmera para github.io nas configurações do Chrome.');
+      await stopScanner();
+    }
+  });
+  document.getElementById('stop').addEventListener('click', async () => {
+    await stopScanner();
+    setStatus('Câmera fechada.');
+  });
+  document.getElementById('copy').addEventListener('click', async () => {
+    if (!lastCode) { setStatus('Ainda não há código para copiar.'); return; }
+    try {
+      await navigator.clipboard.writeText(lastCode);
+      setStatus('Código copiado: ' + lastCode);
+    } catch (_) {
+      setStatus('Código lido: ' + lastCode + '. Se não foi copiado, selecione e copie o número manualmente.');
+    }
+  });
+  window.addEventListener('pagehide', stopScanner);
+})();
+</script>
+</body>
+</html>
