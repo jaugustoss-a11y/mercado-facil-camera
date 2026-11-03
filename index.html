@@ -24,7 +24,7 @@
 <body>
 <main>
   <h1>Leitor de código de barras</h1>
-  <p>Mercado Fácil — teste independente da câmera.</p>
+  <p>Mercado Fácil — leitor de código de barras.</p>
   <button id="start" class="primary">Abrir câmera</button>
   <button id="stop" class="secondary">Fechar câmera</button>
   <div id="reader"></div>
@@ -32,7 +32,7 @@
   <p id="code">Nenhum código lido ainda.</p>
   <button id="copy" class="secondary">Copiar código</button>
   <p id="status" role="status">Toque em “Abrir câmera” e autorize o acesso quando o navegador perguntar.</p>
-  <p class="small">A câmera só será usada após você tocar no botão. Esta página de teste não altera produtos, vendas ou estoque.</p>
+  <p class="small">A câmera só será usada após você tocar no botão. Esta página não altera produtos, vendas ou estoque.</p>
 </main>
 <script>
 (() => {
@@ -77,14 +77,16 @@
         (decodedText) => {
           lastCode = decodedText;
           codeOut.textContent = decodedText;
-          setStatus('Código lido com sucesso: ' + decodedText);
           if (window.opener && !window.opener.closed) {
+            // '*' é necessário: o endereço do iframe do Apps Script muda.
             window.opener.postMessage({tipo:'MERCADO_FACIL_CODIGO', codigo:decodedText}, '*');
-            setStatus('Código enviado ao Mercado Fácil: ' + decodedText + '. Esta guia pode ser fechada.');
+            setStatus('Código enviado ao Mercado Fácil: ' + decodedText + '. Voltando ao app…');
+            stopScanner();
+            setTimeout(() => window.close(), 700);
           } else {
-            setStatus('Código lido com sucesso. Abra o leitor a partir do Mercado Fácil para enviar o código automaticamente.');
+            setStatus('Código lido: ' + decodedText + '. Não foi possível enviar ao app automaticamente; toque em "Copiar código" e cole no campo de código de barras.');
+            stopScanner();
           }
-          stopScanner();
         },
         () => {}
       );
